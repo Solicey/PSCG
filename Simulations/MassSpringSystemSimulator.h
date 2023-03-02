@@ -36,11 +36,34 @@ public:
 	Vec3 getPositionOfMassPoint(int index);
 	Vec3 getVelocityOfMassPoint(int index);
 	void applyExternalForce(Vec3 force);
+	void initSimpleSystem();
+	void drawMassPoints();
+	void drawSprings();
+	void clearMassSpringSystem();
+	void useIntegrator(float timeStep);
 	
 	// Do Not Change
 	void setIntegrator(int integrator) {
 		m_iIntegrator = integrator;
 	}
+
+	struct MassPoint
+	{
+		Vec3 position;
+		Vec3 velocity;
+		bool isFixed;
+	};
+
+	struct Spring
+	{
+		int p1, p2;
+		float initLength;
+	};
+
+	enum Integrator 
+	{
+		None, Euler, Midpoint, Leapfrog
+	};
 
 private:
 	// Data Attributes
@@ -48,6 +71,10 @@ private:
 	float m_fStiffness;
 	float m_fDamping;
 	int m_iIntegrator;
+	float m_fMassPointSize = 0.02f;
+
+	std::vector<MassPoint> m_massPoints;
+	std::vector<Spring> m_springs;
 
 	// UI Attributes
 	Vec3 m_externalForce;
