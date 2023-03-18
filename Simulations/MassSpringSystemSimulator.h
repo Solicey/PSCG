@@ -1,6 +1,7 @@
 #ifndef MASSSPRINGSYSTEMSIMULATOR_h
 #define MASSSPRINGSYSTEMSIMULATOR_h
 #include "Simulator.h"
+#include "util/timer.h"
 
 // Do Not Change
 #define EULER 0
@@ -81,5 +82,8 @@ private:
 	Point2D m_mouse;
 	Point2D m_trackmouse;
 	Point2D m_oldtrackmouse;
+
+	MuTime myTimer;
+	float m_accumFrameTime = 0.0f;
 };
 #endif

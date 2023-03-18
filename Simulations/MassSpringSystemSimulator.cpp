@@ -1,8 +1,10 @@
 #include "MassSpringSystemSimulator.h"
 
+
 MassSpringSystemSimulator::MassSpringSystemSimulator()
 {
 	m_iTestCase = 0;
+	myTimer.get();
 }
 
 const char* MassSpringSystemSimulator::getTestCasesStr()
@@ -18,6 +20,12 @@ void MassSpringSystemSimulator::initUI(DrawingUtilitiesClass* DUC)
 	case 0:
 		break;
 	case 1:
+		TwAddVarRW(DUC->g_pTweakBar, "Stiffness", TW_TYPE_FLOAT, &m_fStiffness, "min=1 step=1");
+		TwAddVarRW(DUC->g_pTweakBar, "Damping", TW_TYPE_FLOAT, &m_fDamping, "min=0.1 step=0.1");
+		break;
+	case 2:
+		TwAddVarRW(DUC->g_pTweakBar, "Stiffness", TW_TYPE_FLOAT, &m_fStiffness, "min=1 step=1");
+		TwAddVarRW(DUC->g_pTweakBar, "Damping", TW_TYPE_FLOAT, &m_fDamping, "min=0.1 step=0.1");
 		break;
 	default:break;
 	}
@@ -71,7 +79,7 @@ void MassSpringSystemSimulator::notifyCaseChanged(int testCase)
 		initSimpleSystem();
 		setMass(10);
 		setStiffness(40);
-		setDampingFactor(15);
+		setDampingFactor(0.1);
 		setIntegrator(Euler);
 
 		cout << "======================Demo 2======================\n";
@@ -81,7 +89,7 @@ void MassSpringSystemSimulator::notifyCaseChanged(int testCase)
 		initSimpleSystem();
 		setMass(10);
 		setStiffness(40);
-		setDampingFactor(15);
+		setDampingFactor(0.1);
 		setIntegrator(Midpoint);
 
 		cout << "======================Demo 3======================\n";
@@ -218,104 +226,115 @@ void MassSpringSystemSimulator::clearMassSpringSystem()
 
 void MassSpringSystemSimulator::useIntegrator(float timeStep)
 {
-	std::vector<Vec3> forces;
-	forces.resize(m_massPoints.size(), Vec3(0, 0, 0));
+	m_accumFrameTime += myTimer.update().time / 1000.0f;
+	// std::cout << m_accumFrameTime << " " << timeStep << std::endl;
+	if (m_accumFrameTime < timeStep) return;
 
-	if (m_iIntegrator == Euler)
+	int count = (int)(m_accumFrameTime / timeStep);
+	for (int i = 0; i < count; i++)
 	{
-		for (const auto& s : m_springs)
+		std::vector<Vec3> forces;
+		forces.resize(m_massPoints.size(), Vec3(0, 0, 0));
+
+		if (m_iIntegrator == Euler)
 		{
-			Vec3 x12 = getPositionOfMassPoint(s.p2) - getPositionOfMassPoint(s.p1);
-			float length = norm(x12);
-			Vec3 norm_x12 = x12 / length;
-			Vec3 fs1 = m_fStiffness * (length - s.initLength) * norm_x12;
-
-			Vec3 v12 = getVelocityOfMassPoint(s.p2) - getVelocityOfMassPoint(s.p1);
-			Vec3 fd1 = m_fDamping * dot(v12, norm_x12) * norm_x12;
-
-			forces[s.p1] += fs1 + fd1;
-			forces[s.p2] -= fs1 + fd1;
-
-			std::cout << "x12: " << x12 << std::endl;
-			std::cout << "norm_x12: " <<  norm_x12 << std::endl;
-			std::cout << "length: " << length << std::endl;
-
-			std::cout << "fs1: " << fs1 << std::endl;
-			std::cout << "fd1: " << fd1 << std::endl;
-		}
-
-		for (int id = 0; id < m_massPoints.size(); id++)
-		{
-			auto& p = m_massPoints[id];
-
-			if (p.isFixed)
+			for (const auto& s : m_springs)
 			{
-				p.velocity = 0;
-				continue;
+				Vec3 x12 = getPositionOfMassPoint(s.p2) - getPositionOfMassPoint(s.p1);
+				float length = norm(x12);
+				Vec3 norm_x12 = x12 / length;
+				Vec3 fs1 = m_fStiffness * (length - s.initLength) * norm_x12;
+
+				Vec3 v12 = getVelocityOfMassPoint(s.p2) - getVelocityOfMassPoint(s.p1);
+				Vec3 fd1 = m_fDamping * dot(v12, norm_x12) * norm_x12;
+
+				forces[s.p1] += fs1 + fd1;
+				forces[s.p2] -= fs1 + fd1;
+
+				/*std::cout << "x12: " << x12 << std::endl;
+				std::cout << "norm_x12: " <<  norm_x12 << std::endl;
+				std::cout << "length: " << length << std::endl;
+
+				std::cout << "fs1: " << fs1 << std::endl;
+				std::cout << "fd1: " << fd1 << std::endl;*/
 			}
 
-			p.position = p.position + p.velocity * timeStep;
-			p.velocity = p.velocity + forces[id] * timeStep / m_fMass;
+			for (int id = 0; id < m_massPoints.size(); id++)
+			{
+				auto& p = m_massPoints[id];
 
-			std::cout << "id: " << id << " force: " << forces[id] <<
-				 " velocity: " << p.velocity << " position: " << p.position << std::endl;
+				if (p.isFixed)
+				{
+					p.velocity = 0;
+					continue;
+				}
+
+				p.position = p.position + p.velocity * timeStep;
+				p.velocity = p.velocity + forces[id] * timeStep / m_fMass;
+
+				// std::cout << "id: " << id << " force: " << forces[id] << " velocity: " << p.velocity << " position: " << p.position << std::endl;
+			}
+		}
+		else if (m_iIntegrator == Midpoint)
+		{
+			for (const auto& s : m_springs)
+			{
+				Vec3 x12 = getPositionOfMassPoint(s.p2) - getPositionOfMassPoint(s.p1);
+				float length = norm(x12);
+				Vec3 norm_x12 = x12 / length;
+				Vec3 fs1 = m_fStiffness * (length - s.initLength) * norm_x12;
+
+				forces[s.p1] += fs1;
+				forces[s.p2] -= fs1;
+
+				// std::cout << "fs1: " << fs1 << std::endl;
+			}
+
+			std::vector<MassPoint> mids;
+			mids.resize(m_massPoints.size());
+
+			for (int id = 0; id < m_massPoints.size(); id++)
+			{
+				const auto& p = m_massPoints[id];
+				auto& mid = mids[id];
+
+				mid.position = p.position + p.velocity * timeStep / 2.0f;
+				mid.velocity = p.velocity + forces[id] * timeStep / (2.0f * m_fMass);
+
+				forces[id] = Vec3(0, 0, 0);
+			}
+
+			for (const auto& s : m_springs)
+			{
+				int p1 = s.p1, p2 = s.p2;
+
+				Vec3 x12 = mids[p2].position - mids[p1].position;
+				float length = norm(x12);
+				Vec3 norm_x12 = x12 / length;
+				Vec3 fs1 = m_fStiffness * (length - s.initLength) * norm_x12;
+
+				forces[p1] += fs1;
+				forces[p2] -= fs1;
+
+				// std::cout << "fs1: " << fs1 << std::endl;
+			}
+
+			for (int id = 0; id < m_massPoints.size(); id++)
+			{
+				auto& p = m_massPoints[id];
+
+				p.position = p.position + p.velocity * timeStep;
+				p.velocity = p.velocity + forces[id] * timeStep / m_fMass;
+
+				// std::cout << "id: " << id << " force: " << forces[id] << " velocity: " << p.velocity << " position: " << p.position << std::endl;
+
+			}
+		}
+		else
+		{
+
 		}
 	}
-	else if (m_iIntegrator == Midpoint)
-	{
-		for (const auto& s : m_springs)
-		{
-			Vec3 x12 = getPositionOfMassPoint(s.p2) - getPositionOfMassPoint(s.p1);
-			float length = norm(x12);
-			Vec3 norm_x12 = x12 / length;
-			Vec3 fs1 = m_fStiffness * (length - s.initLength) * norm_x12;
 
-			forces[s.p1] += fs1;
-			forces[s.p2] -= fs1;
-
-			std::cout << "fs1: " << fs1 << std::endl;
-		}
-
-		std::vector<MassPoint> mids;
-		mids.resize(m_massPoints.size());
-
-		for (int id = 0; id < m_massPoints.size(); id++)
-		{
-			const auto& p = m_massPoints[id];
-			auto& mid = mids[id];
-
-			mid.position = p.position + p.velocity * timeStep / 2.0f;
-			mid.velocity = p.velocity + forces[id] * timeStep / (2.0f * m_fMass);
-
-			forces[id] = Vec3(0, 0, 0);
-		}
-
-		for (const auto& s : m_springs)
-		{
-			int p1 = s.p1, p2 = s.p2;
-
-			Vec3 x12 = mids[p2].position - mids[p1].position;
-			float length = norm(x12);
-			Vec3 norm_x12 = x12 / length;
-			Vec3 fs1 = m_fStiffness * (length - s.initLength) * norm_x12;
-
-			forces[p1] += fs1;
-			forces[p2] -= fs1;
-
-			std::cout << "fs1: " << fs1 << std::endl;
-		}
-
-		for (int id = 0; id < m_massPoints.size(); id++)
-		{
-			auto& p = m_massPoints[id];
-
-			p.position = p.position + p.velocity * timeStep;
-			p.velocity = p.velocity + forces[id] * timeStep / m_fMass;
-
-		}
-	}
-	else
-	{
-
-	}
+	m_accumFrameTime -= count * timeStep;
 }
