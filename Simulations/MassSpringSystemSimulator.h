@@ -30,6 +30,7 @@ public:
 	void setMass(float mass);
 	void setStiffness(float stiffness);
 	void setDampingFactor(float damping);
+	void setGravity(float gravity);
 	int addMassPoint(Vec3 position, Vec3 Velocity, bool isFixed);
 	void addSpring(int masspoint1, int masspoint2, float initialLength);
 	int getNumberOfMassPoints();
@@ -38,10 +39,11 @@ public:
 	Vec3 getVelocityOfMassPoint(int index);
 	void applyExternalForce(Vec3 force);
 	void initSimpleSystem();
+	void initComplexSystem();
 	void drawMassPoints();
 	void drawSprings();
 	void clearMassSpringSystem();
-	void useIntegrator(float timeStep);
+	void useIntegrator(float timeStep, bool printDebugInfo = false);
 	
 	// Do Not Change
 	void setIntegrator(int integrator) {
@@ -71,8 +73,14 @@ private:
 	float m_fMass;
 	float m_fStiffness;
 	float m_fDamping;
+	float m_fGravity = 0.0f;
 	int m_iIntegrator;
 	float m_fMassPointSize = 0.02f;
+	float m_fGroundY = -1.0f;
+
+	float m_fCubeEdge = 0.4f;
+	float m_fCubeEdgeInit = 0.3f;
+	float m_fGroundContactLoss = 0.2f;
 
 	std::vector<MassPoint> m_massPoints;
 	std::vector<Spring> m_springs;
