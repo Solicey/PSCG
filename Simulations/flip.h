@@ -106,7 +106,7 @@ public:
 		float overRelaxation = 1.9;
 		bool compensateDrift = true;
 
-		float flipRatio = 0.95f; // 0.95f;
+		float flipRatio = m_fRatio; // 0.95f;
 		Vec3 obstaclePos(0.0f);     // obstacle can be moved with mouse, as a user interaction
 		Vec3 obstacleVel(0.0f);
 

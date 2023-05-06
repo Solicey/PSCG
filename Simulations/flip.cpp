@@ -743,7 +743,7 @@ void FlipSimulator::updateParticleColors()
 
 const char* FlipSimulator::getTestCasesStr()
 {
-	return "Demo 1";
+	return "res=10,res=15,res=20";
 }
 
 void FlipSimulator::initUI(DrawingUtilitiesClass* DUC)
@@ -751,7 +751,11 @@ void FlipSimulator::initUI(DrawingUtilitiesClass* DUC)
 	this->DUC = DUC;
 	switch (m_iTestCase)
 	{
-	case 0:break;
+	case 0:
+	case 1:
+	case 2:
+		TwAddVarRW(DUC->g_pTweakBar, "Flip Ratio", TW_TYPE_FLOAT, &m_fRatio, "min=0.0 max=1.0, step=0.01");
+		break;
 	default:break;
 	}
 }
@@ -768,6 +772,8 @@ void FlipSimulator::drawFrame(ID3D11DeviceContext* pd3dImmediateContext)
 	switch (m_iTestCase)
 	{
 	case 0: 
+	case 1:
+	case 2:
 		DrawParticles();
 		break;
 	}
@@ -779,8 +785,16 @@ void FlipSimulator::notifyCaseChanged(int testCase)
 	switch (m_iTestCase)
 	{
 	case 0:
-		cout << "========================================Demo 1======================================\n";
-		setupScene(12);
+		cout << "========================================res=10======================================\n";
+		setupScene(10);
+		break;
+	case 1:
+		cout << "========================================res=15======================================\n";
+		setupScene(15);
+		break;
+	case 2:
+		cout << "========================================res=20======================================\n";
+		setupScene(20);
 		break;
 	default:
 		cout << "Empty Test!\n";
@@ -802,7 +816,7 @@ void FlipSimulator::externalForcesCalculations(float timeElapsed)
 		Vec3 inputView = Vec3((float)mouseDiff.x, (float)-mouseDiff.y, 0);
 		Vec3 inputWorld = worldViewInv.transformVectorNormal(inputView);
 		// find a proper scale!
-		float inputScale = 1.0f;
+		float inputScale = 0.001f / timeElapsed;
 		
 		inputWorld = inputWorld * inputScale;
 		m_obstacleVel = inputWorld;
